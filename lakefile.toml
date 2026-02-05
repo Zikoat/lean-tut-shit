@@ -1,0 +1,10 @@
+name = "shit"
+version = "0.1.0"
+defaultTargets = ["shit"]
+
+[[lean_lib]]
+name = "Shit"
+
+[[lean_exe]]
+name = "shit"
+root = "Main"
