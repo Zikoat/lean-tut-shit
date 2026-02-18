@@ -1,3 +1,5 @@
+import Mathlib
+
 def boolArray : Array Bool :=
   #[false, false, false]
 
@@ -27,8 +29,8 @@ def toggleNth (xs:List Bool) (n:Nat) : List Bool:=
 match n, xs with
 | 0, [] => []
 | 0, y::ys => (not y) :: ys
-|Nat.succ _, [] => []
-|Nat.succ n',y::ys=>y::toggleNth ys n'
+| Nat.succ _, [] => []
+| Nat.succ n',y::ys=>y::toggleNth ys n'
 
 -- #eval toggleNth [true, false, true] 1
 
@@ -142,7 +144,7 @@ def myMainProgram : IO Unit := do
 
 def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val => (if idx = x then "x" else val)))
 
-def sleepTest :IO Unit:=do
+def animationTest :IO Unit:=do
   let mut x := 0
 
   while true do
@@ -153,9 +155,6 @@ def sleepTest :IO Unit:=do
     -- todo it shouldnt be possible to end up outside of the board
     x:= (x+1) % 6
 
-def main : IO Unit := do
-  IO.println "start"
-  sleepTest
 
 example : drawBoard [["."]] 0 0 = "x" := by rfl
 
@@ -172,3 +171,75 @@ example : drawBoard [[".", "."], [".", "."]] 1 1 = ". .\n. x" := by rfl
 
 -- todo THIS CAN BE RUN WITH
 -- cd /home/zikoat/dev/lean-tut/shit && lean --run ProofFarmer.lean
+
+def sleepTest :IO Unit :=do
+  while true do
+    IO.sleep 1000
+    IO.println "sleeping"
+
+
+def step (s : Nat) : Nat := s + 1
+
+def run (n : Nat) : Nat :=
+  Nat.rec n (fun _ acc => step acc) n
+-- honestly, run isn't even needed; "n steps" just means n.
+
+def stop (_s : Nat) : Bool := false
+
+inductive TerminatesFrom : Nat → Prop
+| done (s : Nat) : stop s = true → TerminatesFrom s
+| more (s : Nat) : stop s = false → TerminatesFrom (step s) → TerminatesFrom s
+
+-- theorem sleepTest_model_never_terminates : ¬ TerminatesFrom 0 := by
+--   sorry
+
+
+def whileTrue2 : Unit := Id.run do
+  while true do ()
+
+-- #check whileTrue
+-- #eval whileTrue
+
+partial def infiniteRecursive :Unit -> Unit :=
+  infiniteRecursive
+
+-- #check infiniteRecursive
+-- #eval infiniteRecursive ()
+
+
+def main : IO Unit := do
+  sleepTest
+
+inductive Prog where
+| skip : Prog
+| seq : Prog → Prog → Prog
+| while : Bool → Prog → Prog
+deriving Repr, DecidableEq
+
+def whileTrue : Prog :=
+  Prog.while true Prog.skip
+
+inductive Terminates : Prog → Type where
+| skip : Terminates Prog.skip
+| seq (p q : Prog) :
+    Terminates p → Terminates q → Terminates (Prog.seq p q)
+| while_done (body : Prog) : Terminates (Prog.while false body)
+| while_step (body : Prog) :
+    Terminates (Prog.seq body (Prog.while true body)) →
+    Terminates (Prog.while true body)
+
+def termSize : {p: Prog} → Terminates p → Nat
+| _, Terminates.skip => 1
+| _, Terminates.while_done _ => 1
+| _, Terminates.seq _ _ hp hq => termSize hp + termSize hq + 1
+| _, Terminates.while_step _ hseq => termSize hseq + 1
+
+theorem whileTrue_never_terminates (h : Terminates whileTrue ): false := by
+  cases h with
+  | while_step body hseq =>
+    cases hseq with
+    | seq p q hp hq =>
+      exact whileTrue_never_terminates hq
+termination_by termSize h
+decreasing_by
+  simp [termSize]

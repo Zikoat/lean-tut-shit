@@ -1,6 +1,7 @@
 name = "shit"
 version = "0.1.0"
 defaultTargets = ["shit"]
+lintDriver = "batteries/runLinter"
 
 [[lean_lib]]
 name = "Shit"
@@ -8,3 +9,8 @@ name = "Shit"
 [[lean_exe]]
 name = "shit"
 root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.29.0-rc1"

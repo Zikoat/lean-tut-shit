@@ -107,7 +107,7 @@ def natOrigin : PPoint Nat :=
 
 #check natOrigin
 
-def noop: (_:Unit)->  Unit := fun b=>b
+def noop: (Unit)->  Unit := fun b=>b
 def noop2 (_:Unit):Unit := ()
 def noop3 (_:Unit) := ()
 def noop4 : Unit → Unit :=
