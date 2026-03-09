@@ -1,4 +1,5 @@
-import Mathlib
+import Mathlib.Tactic
+import Init.Control.State
 
 def boolArray : Array Bool :=
   #[false, false, false]
@@ -126,14 +127,14 @@ def setXIfCoordinateIsSame (x:Nat) (x': Nat) (a: String)  :  String :=
 def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
   String.intercalate "\n" ((
       board.mapIdx fun y' row =>
-        if y' = (y) then
+        if y' = (row.length - y - 1) then
           row.mapIdx (setXIfCoordinateIsSame x)
         else
           row
     ).map (String.intercalate " "))
 
 def myMainProgram : IO Unit := do
-  let myPos := [2, 2]
+  let myPos := [0, 0]
   let row :List String:= (List.replicate 5 ".")
   let board: List (List String) :=
     (List.replicate 5 row)
@@ -146,7 +147,6 @@ def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val 
 
 def animationTest :IO Unit:=do
   let mut x := 0
-
   while true do
     IO.print "\r"
     IO.print (String.intercalate " " (shit x))
@@ -155,10 +155,9 @@ def animationTest :IO Unit:=do
     -- todo it shouldnt be possible to end up outside of the board
     x:= (x+1) % 6
 
-
 example : drawBoard [["."]] 0 0 = "x" := by rfl
 
-example : drawBoard [[".", "."], [".", "."]] 1 1 = ". .\n. x" := by rfl
+example : drawBoard [[".", "."], [".", "."]] 1 1 = ". x\n. ." := by rfl
 -- shit is it possible to show the expanded value, so it is easier to know what the calculation was?
 -- #eval  drawBoard [[".", "."], [".", "."]] 1 1
 
@@ -172,49 +171,13 @@ example : drawBoard [[".", "."], [".", "."]] 1 1 = ". .\n. x" := by rfl
 -- todo THIS CAN BE RUN WITH
 -- cd /home/zikoat/dev/lean-tut/shit && lean --run ProofFarmer.lean
 
-def sleepTest :IO Unit :=do
-  while true do
-    IO.sleep 1000
-    IO.println "sleeping"
 
 
-def step (s : Nat) : Nat := s + 1
-
-def run (n : Nat) : Nat :=
-  Nat.rec n (fun _ acc => step acc) n
--- honestly, run isn't even needed; "n steps" just means n.
-
-def stop (_s : Nat) : Bool := false
-
-inductive TerminatesFrom : Nat → Prop
-| done (s : Nat) : stop s = true → TerminatesFrom s
-| more (s : Nat) : stop s = false → TerminatesFrom (step s) → TerminatesFrom s
-
--- theorem sleepTest_model_never_terminates : ¬ TerminatesFrom 0 := by
---   sorry
-
-
-def whileTrue2 : Unit := Id.run do
-  while true do ()
-
--- #check whileTrue
--- #eval whileTrue
-
-partial def infiniteRecursive :Unit -> Unit :=
-  infiniteRecursive
-
--- #check infiniteRecursive
--- #eval infiniteRecursive ()
-
-
-def main : IO Unit := do
-  sleepTest
 
 inductive Prog where
 | skip : Prog
 | seq : Prog → Prog → Prog
 | while : Bool → Prog → Prog
-deriving Repr, DecidableEq
 
 def whileTrue : Prog :=
   Prog.while true Prog.skip
@@ -242,4 +205,72 @@ theorem whileTrue_never_terminates (h : Terminates whileTrue ): false := by
       exact whileTrue_never_terminates hq
 termination_by termSize h
 decreasing_by
+  rename_i hEq hseqEq
+  cases hEq
+  cases hseqEq
   simp [termSize]
+  simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
+  (Nat.le_add_right (termSize hq) (termSize hp + 1))
+
+partial def exec : Prog -> IO Unit
+| .skip => pure ()
+| .seq p q => do
+  exec p
+  exec q
+| .while cond body => do
+  if cond then
+    exec (.seq body (.while cond body))
+  else
+    pure ()
+
+def sleepTest :IO Unit :=do
+  IO.println "start"
+  exec whileTrue
+  -- while true do
+  --   IO.sleep 1000
+  --   IO.println "sleeping"
+
+#eval IO.println "test"
+
+-- def main : IO Unit := do
+--   sleepTest
+
+class MonadConsole (m : Type -> Type) where
+  print : String -> m Unit
+
+def appLogic {m : Type -> Type } [Monad m] [MonadConsole m] : m Nat := do
+  MonadConsole.print "hello"
+  pure 42
+
+
+instance : MonadConsole IO where
+  print s := IO.println s
+
+
+
+#check appLogic
+
+instance : MonadConsole Id where
+  print _ := ()
+
+#eval (appLogic (m:=Id))
+#eval (appLogic (m:=IO))
+
+theorem appLogic_id_returns_42 : (appLogic (m:=Id)) = 42 := by
+  rfl
+
+abbrev MockM := StateM (List String)
+
+instance : MonadConsole MockM where
+  print s := modify (fun xs => xs ++ [s])
+
+def runMock : MockM a -> (a × List String)
+  | act => act.run []
+
+#eval runMock (appLogic (m := MockM))
+#check StateM
+
+def main : IO Unit := do
+  myMainProgram
+
+#eval main
