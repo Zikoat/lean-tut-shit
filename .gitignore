@@ -1,1 +1,3 @@
-/.lake
+# Lake / Lean build output
+.lake/
+build/
