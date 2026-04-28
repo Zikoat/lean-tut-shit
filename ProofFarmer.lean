@@ -133,8 +133,6 @@ def drawBoard (board: List (List String)) (pos: Pos) : String :=
           row
     ).map (String.intercalate " "))
 
-def worldSize := 1
-
 def Carrot_emoji := "🥕"
 def Fertilizer_emoji:= "💩"
 def Gold_emoji:= "🪙"
@@ -147,12 +145,19 @@ def Cactus_emoji:= "🌵"
 def Bones_emoji:= "🦴"
 def Tick_emoji:="🕰️"
 
+
+def world_size (w:World): Pos :=
+  if w.unlocked_expand_1
+  then {x:=1,y:=3}
+  else {x:=1,y:=1}
+
 def render_terminal (w: World) : IO Unit := do
-  let render_height := 3
+  let world_size_calc := world_size w
+  let render_height := world_size_calc.y + 2
   IO.print s!"\x1b[{render_height}A\x1b[J"
-  let row :List String:= (List.replicate worldSize ".")
+  let row :List String:= (List.replicate (world_size w).x ".")
   let board: List (List String) :=
-    (List.replicate worldSize row)
+    (List.replicate (world_size w).y row)
 
   let boardString:String := drawBoard board w.myPos
   -- IO.println ""
@@ -161,15 +166,17 @@ def render_terminal (w: World) : IO Unit := do
   IO.println s!"unlocks: {
   if w.unlocked_while then "while" else ""} {
   if w.unlocked_speed_1 then "speed_1" else ""} {
-  if w.unlocked_grass_1 then "grass_1" else ""}"
+  if w.unlocked_grass_1 then "grass_1" else ""} {
+  if w.unlocked_expand_1 then "expand_1" else ""}"
   saveWorld w
 
 def render_noop (_w: World) : IO Unit := do
   pure ()
 
 def myMainProgram (sleep:UInt32 -> BaseIO Unit)  (render : World -> IO Unit): IO World := do
-  IO.print "\n\n\n\n"
+  IO.print "\n\n\n\n\n\n"
   let mut w <- loadWorld
+
 
   -- world := moveEast (moveEast world)
   w <- harvest w sleep render
@@ -179,11 +186,14 @@ def myMainProgram (sleep:UInt32 -> BaseIO Unit)  (render : World -> IO Unit): IO
   w <- harvest w sleep render
   w <- harvest w sleep render
 
+  w := move .north w --sleep render
+
   while True do
     w <- harvest w sleep render
     w := unlock_while w
     w := unlock_grass_1 w
     w := unlock_speed_1 w
+    w := unlock_expand_1 w
 
   render w
   pure w

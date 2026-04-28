@@ -12,6 +12,7 @@ structure World where
   unlocked_while: Bool := false
   unlocked_speed_1 : Bool := false
   unlocked_grass_1: Bool := false
+  unlocked_expand_1:Bool:=false
 deriving Repr, Lean.ToJson, Lean.FromJson, BEq
 
 def base_ticks_per_second := 400
@@ -62,6 +63,14 @@ def unlock_grass_1(w:World):World:=
     {w with
       unlocked_grass_1 := true
       hay := w.hay - 300}
+  else w
+
+
+def unlock_expand_1(w:World):World:=
+  if w.hay >= 30 && !w.unlocked_expand_1 then
+    {w with
+      unlocked_expand_1 := true
+      hay := w.hay - 30}
   else w
 
 -- 1x1

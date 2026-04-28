@@ -47,8 +47,6 @@ decreasing_by
   unless w_0 == w_1 do
     throw (IO.userError s!"roundtrip mismatch:\n  before: {repr w_0}\n  after:{repr w_1}")
 
-
-
 partial def exec : Prog -> IO Unit
 | .skip => pure ()
 | .seq p q => do
