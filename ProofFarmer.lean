@@ -133,37 +133,36 @@ def drawBoard (board: List (List String)) (pos: Pos) : String :=
           row
     ).map (String.intercalate " "))
 
+def worldSize := 1
 
-def wait_ticks (ticks: Nat) (w : World) (sleep :( UInt32) -> BaseIO Unit) : IO World := do
-  let ms := (ticks *1000 / base_ticks_per_second).toUInt32
-  sleep ms
-  pure {w with ticks := w.ticks + ticks }
-
-def myMainProgram (sleep:UInt32 -> BaseIO Unit): IO Unit := do
-  let worldSize := 1
-
-  let mut world <- loadWorld
-
-  -- world := moveEast (moveEast world)
-  world := harvest world
-  world <- wait_ticks (1 * base_ticks_per_second) world sleep
-  world := harvest world
-  world := harvest world
-  world := harvest world
-  world := harvest world
-  world := unlock_while (world)
-
+def render (w: World) : IO Unit := do
   let row :List String:= (List.replicate worldSize ".")
   let board: List (List String) :=
     (List.replicate worldSize row)
 
-  let boardString:String := drawBoard board world.myPos
+  let boardString:String := drawBoard board w.myPos
 
   IO.println boardString
-  IO.println s!"{world.ticks} ticks"
-  IO.println s!"{world.hay} hay"
-  IO.println s!"while unlocked: {world.while_unlocked}"
-  saveWorld world
+  IO.println s!"{w.ticks} ticks"
+  IO.println s!"{w.hay} hay"
+  IO.println s!"while unlocked: {w.while_unlocked}"
+  saveWorld w
+
+def myMainProgram (sleep:UInt32 -> BaseIO Unit): IO Unit := do
+  IO.println "finished build"
+
+
+  let mut w <- loadWorld
+
+  -- world := moveEast (moveEast world)
+  w <- harvest w sleep render
+  w <- wait_ticks (1 * base_ticks_per_second) w sleep render
+  w <- harvest w sleep render
+  w <- harvest w sleep render
+  w <- harvest w sleep render
+  w <- harvest w sleep render
+  w := unlock_while w
+  render w
 
 def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val => (if idx = x then "x" else val)))
 

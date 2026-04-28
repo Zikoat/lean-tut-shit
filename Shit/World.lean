@@ -20,11 +20,21 @@ def moveEast (w:World) : World :=
     myPos := {w.myPos with x:= w.myPos.x+1}
     ticks := w.ticks + 200}
 
-def harvest (w:World):World :=
-   { w with
-    ticks := w.ticks + 200
-    hay := w.hay + 1}
 
+def wait_ticks
+    (ticks: Nat)
+    (w : World)
+    (sleep :( UInt32) -> BaseIO Unit)
+    (render : World -> IO Unit): IO World := do
+  let w_next := {w with ticks := w.ticks + ticks }
+  render w_next
+  let ms := (ticks *1000 / base_ticks_per_second).toUInt32
+  sleep ms
+  pure w_next
+
+def harvest (w:World) (sleep :( UInt32) -> BaseIO Unit)  (render : World -> IO Unit):IO World :=
+   wait_ticks (200) ( { w with
+    hay := w.hay + 1}) sleep render
 
 def do_a_flip (w:World):World :=
   {w with
