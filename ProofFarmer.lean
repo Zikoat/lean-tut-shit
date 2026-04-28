@@ -127,7 +127,7 @@ def setXIfCoordinateIsSame (x:Nat) (x': Nat) (a: String)  :  String :=
 structure Pos where
   x : Nat := 0
   y : Nat := 0
-deriving Repr, Lean.ToJson, Lean.FromJson
+deriving Repr, Lean.ToJson, Lean.FromJson, BEq
 
 def drawBoard (board: List (List String)) (pos: Pos) : String :=
   String.intercalate "\n" ((
@@ -143,7 +143,7 @@ structure World where
   ticks: Nat := 0
   hay: Nat := 0
   while_unlocked: Bool := false
-deriving Repr, Lean.ToJson, Lean.FromJson
+deriving Repr, Lean.ToJson, Lean.FromJson, BEq
 
 def moveEast (w:World) : World :=
   { w with
@@ -170,23 +170,20 @@ def unlock_while (w:World):World :=
 def defaultWorldFile:System.FilePath := "world.json"
 
 def loadWorld (path: System.FilePath:= defaultWorldFile) : IO World := do
-  let s <- IO.FS.readFile path
-  match Lean.Json.parse s >>= Lean.fromJson? (α := World) with
-  | .ok w => pure w
-  | .error e => throw (IO.userError s!"loadWorld: {e}")
-
-
-def loadOrDefault (path: System.FilePath:= defaultWorldFile) : IO World := do
-  if <- path.pathExists then loadWorld path else pure {}
+  if <- path.pathExists then
+    let s <- IO.FS.readFile path
+    match Lean.Json.parse s >>= Lean.fromJson? (α := World) with
+    | .ok w => pure w
+    | .error e => throw (IO.userError s!"loadWorld: {e}")
+  else pure {}
 
 def saveWorld (w:World) (path: System.FilePath:=defaultWorldFile) : IO Unit :=
   IO.FS.writeFile path (Lean.toJson w).pretty
 
-
 def myMainProgram : IO Unit := do
   let worldSize := 1
 
-  let mut world <- loadOrDefault
+  let mut world <- loadWorld
 
   -- world := moveEast (moveEast world)
   world := harvest world
@@ -337,9 +334,10 @@ def main : IO Unit := do
 
 #eval main
 
-
 #eval show IO Unit from do
   let w_0 : World := { ticks := 400, myPos := {x:=3}}
   saveWorld w_0 "test_world.json"
   let w_1 <- loadWorld "test_world.json"
   IO.println s!"loaded: {repr w_1}"
+  unless w_0 == w_1 do
+    throw (IO.userError s!"roundtrip mismatch:\n  before: {repr w_0}\n  after:{repr w_1}")
