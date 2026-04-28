@@ -136,10 +136,11 @@ def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
 structure Pos where
   x : Nat
   y : Nat
+  ticks: Nat := 0
 deriving Repr
 
 def moveEast (p:Pos) : Pos :=
-  {p with x:= p.x+1}
+  {p with x:= p.x+1, ticks := p.ticks + 200}
 
 
 def myMainProgram : IO Unit := do
@@ -154,6 +155,7 @@ def myMainProgram : IO Unit := do
   let boardString:String := drawBoard board myPos.x myPos.y
 
   IO.println boardString
+  IO.println s!"{myPos.ticks} ticks"
 
 def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val => (if idx = x then "x" else val)))
 
