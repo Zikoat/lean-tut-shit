@@ -145,18 +145,11 @@ def myMainProgram (sleep:UInt32 -> BaseIO Unit): IO Unit := do
   let mut world <- loadWorld
 
   -- world := moveEast (moveEast world)
-  IO.println "harvesting"
   world := harvest world
   world <- wait_ticks (1 * base_ticks_per_second) world sleep
   world := harvest world
-  sleep 1000
-  IO.println "sleeping"
   world := harvest world
-  sleep 1000
-  IO.println "sleeping"
   world := harvest world
-  sleep 1000
-  IO.println "sleeping"
   world := harvest world
   world := unlock_while (world)
 
