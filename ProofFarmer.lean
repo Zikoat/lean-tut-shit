@@ -124,44 +124,89 @@ def setXIfCoordinateIsSame (x:Nat) (x': Nat) (a: String)  :  String :=
   else
     a
 
-def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
+structure Pos where
+  x : Nat := 0
+  y : Nat := 0
+deriving Repr, Lean.ToJson, Lean.FromJson
+
+def drawBoard (board: List (List String)) (pos: Pos) : String :=
   String.intercalate "\n" ((
       board.mapIdx fun y' row =>
-        if y < board.length ∧ y' = (board.length - y - 1) then
-          row.mapIdx (setXIfCoordinateIsSame x)
+        if pos.y < board.length ∧ y' = (board.length - pos.y - 1) then
+          row.mapIdx (setXIfCoordinateIsSame pos.x)
         else
           row
     ).map (String.intercalate " "))
 
-structure Pos where
-  x : Nat := 0
-  y : Nat := 0
-deriving Repr
-
 structure World where
   myPos: Pos := {}
   ticks: Nat := 0
-deriving Repr
+  hay: Nat := 0
+  while_unlocked: Bool := false
+deriving Repr, Lean.ToJson, Lean.FromJson
 
 def moveEast (w:World) : World :=
   { w with
     myPos := {w.myPos with x:= w.myPos.x+1}
     ticks := w.ticks + 200}
 
+def base_ticks_per_seconds := 400
+
+def harvest (w:World):World :=
+   { w with
+    ticks := w.ticks + 200
+    hay := w.hay + 1}
+
+def do_a_flip (w:World):World :=
+  {w with
+    ticks := w.ticks + 1 * base_ticks_per_seconds}
+
+def unlock_while (w:World):World :=
+  if w.hay >= 5 then
+    { w with
+      while_unlocked := true}
+  else w
+
+def defaultWorldFile:System.FilePath := "world.json"
+
+def loadWorld (path: System.FilePath:= defaultWorldFile) : IO World := do
+  let s <- IO.FS.readFile path
+  match Lean.Json.parse s >>= Lean.fromJson? (α := World) with
+  | .ok w => pure w
+  | .error e => throw (IO.userError s!"loadWorld: {e}")
+
+
+def loadOrDefault (path: System.FilePath:= defaultWorldFile) : IO World := do
+  if <- path.pathExists then loadWorld path else pure {}
+
+def saveWorld (w:World) (path: System.FilePath:=defaultWorldFile) : IO Unit :=
+  IO.FS.writeFile path (Lean.toJson w).pretty
+
 
 def myMainProgram : IO Unit := do
-  let mut world : World := {}
+  let worldSize := 1
 
-  world := moveEast (moveEast world)
+  let mut world <- loadOrDefault
 
-  let row :List String:= (List.replicate 5 ".")
+  -- world := moveEast (moveEast world)
+  world := harvest world
+  world := harvest world
+  world := harvest world
+  world := harvest world
+  world := harvest world
+  world := unlock_while (world)
+
+  let row :List String:= (List.replicate worldSize ".")
   let board: List (List String) :=
-    (List.replicate 5 row)
+    (List.replicate worldSize row)
 
-  let boardString:String := drawBoard board world.myPos.x world.myPos.y
+  let boardString:String := drawBoard board world.myPos
 
   IO.println boardString
   IO.println s!"{world.ticks} ticks"
+  IO.println s!"{world.hay} hay"
+  IO.println s!"while unlocked: {world.while_unlocked}"
+  saveWorld world
 
 def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val => (if idx = x then "x" else val)))
 
@@ -175,9 +220,9 @@ def animationTest :IO Unit:=do
     -- todo it shouldnt be possible to end up outside of the board
     x:= (x+1) % 6
 
-example : drawBoard [["."]] 0 0 = "x" := by rfl
+example : drawBoard [["."]] {} = "x" := by rfl
 
-example : drawBoard [[".", "."], [".", "."]] 1 1 = ". x\n. ." := by rfl
+example : drawBoard [[".", "."], [".", "."]] {x:=1, y:=1} = ". x\n. ." := by rfl
 -- shit is it possible to show the expanded value, so it is easier to know what the calculation was?
 -- #eval  drawBoard [[".", "."], [".", "."]] 1 1
 
@@ -291,3 +336,10 @@ def main : IO Unit := do
   myMainProgram
 
 #eval main
+
+
+#eval show IO Unit from do
+  let w_0 : World := { ticks := 400, myPos := {x:=3}}
+  saveWorld w_0 "test_world.json"
+  let w_1 <- loadWorld "test_world.json"
+  IO.println s!"loaded: {repr w_1}"
