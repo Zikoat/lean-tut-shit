@@ -1,3 +1,4 @@
 # Lake / Lean build output
 .lake/
 build/
+world.json
