@@ -133,12 +133,17 @@ def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
           row
     ).map (String.intercalate " "))
 
-def moveEast (p:Nat × Nat) : Nat × Nat :=
-  (p.1 + 1 , p.2)
+structure Pos where
+  x : Nat
+  y : Nat
+deriving Repr
+
+def moveEast (p:Pos) : Pos :=
+  {p with x:= p.x+1}
 
 
 def myMainProgram : IO Unit := do
-  let mut myPos: Nat × Nat := (0, 0)
+  let mut myPos: Pos := {x:=0, y:=0}
 
   myPos := moveEast (moveEast myPos)
 
@@ -146,7 +151,7 @@ def myMainProgram : IO Unit := do
   let board: List (List String) :=
     (List.replicate 5 row)
 
-  let boardString:String := drawBoard board myPos.1 myPos.2
+  let boardString:String := drawBoard board myPos.x myPos.y
 
   IO.println boardString
 
@@ -234,7 +239,7 @@ def sleepTest :IO Unit :=do
   --   IO.sleep 1000
   --   IO.println "sleeping"
 
-#eval IO.println "test"
+-- #eval IO.println "test"
 
 -- def main : IO Unit := do
 --   sleepTest
@@ -252,13 +257,13 @@ instance : MonadConsole IO where
 
 
 
-#check appLogic
+-- #check appLogic
 
 instance : MonadConsole Id where
   print _ := ()
 
-#eval (appLogic (m:=Id))
-#eval (appLogic (m:=IO))
+-- #eval (appLogic (m:=Id))
+-- #eval (appLogic (m:=IO))
 
 theorem appLogic_id_returns_42 : (appLogic (m:=Id)) = 42 := by
   rfl
@@ -271,8 +276,8 @@ instance : MonadConsole MockM where
 def runMock : MockM a -> (a × List String)
   | act => act.run []
 
-#eval runMock (appLogic (m := MockM))
-#check StateM
+-- #eval runMock (appLogic (m := MockM))
+-- #check StateM
 
 def main : IO Unit := do
   myMainProgram
