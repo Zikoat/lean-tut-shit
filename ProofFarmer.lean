@@ -127,7 +127,7 @@ def setXIfCoordinateIsSame (x:Nat) (x': Nat) (a: String)  :  String :=
 def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
   String.intercalate "\n" ((
       board.mapIdx fun y' row =>
-        if y' = (row.length - y - 1) then
+        if y < board.length ∧ y' = (board.length - y - 1) then
           row.mapIdx (setXIfCoordinateIsSame x)
         else
           row
@@ -170,9 +170,6 @@ example : drawBoard [[".", "."], [".", "."]] 1 1 = ". x\n. ." := by rfl
 
 -- todo THIS CAN BE RUN WITH
 -- cd /home/zikoat/dev/lean-tut/shit && lean --run ProofFarmer.lean
-
-
-
 
 inductive Prog where
 | skip : Prog
