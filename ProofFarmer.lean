@@ -134,28 +134,34 @@ def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
     ).map (String.intercalate " "))
 
 structure Pos where
-  x : Nat
-  y : Nat
+  x : Nat := 0
+  y : Nat := 0
+deriving Repr
+
+structure World where
+  myPos: Pos := {}
   ticks: Nat := 0
 deriving Repr
 
-def moveEast (p:Pos) : Pos :=
-  {p with x:= p.x+1, ticks := p.ticks + 200}
+def moveEast (w:World) : World :=
+  { w with
+    myPos := {w.myPos with x:= w.myPos.x+1}
+    ticks := w.ticks + 200}
 
 
 def myMainProgram : IO Unit := do
-  let mut myPos: Pos := {x:=0, y:=0}
+  let mut world : World := {}
 
-  myPos := moveEast (moveEast myPos)
+  world := moveEast (moveEast world)
 
   let row :List String:= (List.replicate 5 ".")
   let board: List (List String) :=
     (List.replicate 5 row)
 
-  let boardString:String := drawBoard board myPos.x myPos.y
+  let boardString:String := drawBoard board world.myPos.x world.myPos.y
 
   IO.println boardString
-  IO.println s!"{myPos.ticks} ticks"
+  IO.println s!"{world.ticks} ticks"
 
 def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val => (if idx = x then "x" else val)))
 
