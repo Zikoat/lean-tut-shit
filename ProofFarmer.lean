@@ -135,23 +135,40 @@ def drawBoard (board: List (List String)) (pos: Pos) : String :=
 
 def worldSize := 1
 
-def render (w: World) : IO Unit := do
+def Carrot_emoji := "🥕"
+def Fertilizer_emoji:= "💩"
+def Gold_emoji:= "🪙"
+def Hay_emoji:= "🌾"
+def Power_emoji:= "⚡"
+def Pumpkin_emoji:= "🎃"
+def Water_emoji:= "💧"
+def Wood_emoji:= "🪵"
+def Cactus_emoji:= "🌵"
+def Bones_emoji:= "🦴"
+def Tick_emoji:="🕰️"
+
+def render_terminal (w: World) : IO Unit := do
+  let render_height := 3
+  IO.print s!"\x1b[{render_height}A\x1b[J"
   let row :List String:= (List.replicate worldSize ".")
   let board: List (List String) :=
     (List.replicate worldSize row)
 
   let boardString:String := drawBoard board w.myPos
-
+  -- IO.println ""
   IO.println boardString
-  IO.println s!"{w.ticks} ticks"
-  IO.println s!"{w.hay} hay"
-  IO.println s!"while unlocked: {w.while_unlocked}"
+  IO.println s!"{w.ticks} {Tick_emoji} | {w.hay} {Hay_emoji}"
+  IO.println s!"unlocks: {
+  if w.unlocked_while then "while" else ""} {
+  if w.unlocked_speed_1 then "speed_1" else ""} {
+  if w.unlocked_grass_1 then "grass_1" else ""}"
   saveWorld w
 
-def myMainProgram (sleep:UInt32 -> BaseIO Unit): IO Unit := do
-  IO.println "finished build"
+def render_noop (_w: World) : IO Unit := do
+  pure ()
 
-
+def myMainProgram (sleep:UInt32 -> BaseIO Unit)  (render : World -> IO Unit): IO World := do
+  IO.print "\n\n\n\n"
   let mut w <- loadWorld
 
   -- world := moveEast (moveEast world)
@@ -161,8 +178,15 @@ def myMainProgram (sleep:UInt32 -> BaseIO Unit): IO Unit := do
   w <- harvest w sleep render
   w <- harvest w sleep render
   w <- harvest w sleep render
-  w := unlock_while w
+
+  while True do
+    w <- harvest w sleep render
+    w := unlock_while w
+    w := unlock_grass_1 w
+    w := unlock_speed_1 w
+
   render w
+  pure w
 
 def shit  (x: Nat) : List String := ((List.replicate 5 ".").mapIdx (fun idx val => (if idx = x then "x" else val)))
 
@@ -236,6 +260,6 @@ def sleep_noop (_ms : UInt32) : BaseIO Unit
  := pure ()
 
 def main : IO Unit := do
-  myMainProgram sleep_wait
+  _ <- myMainProgram sleep_wait render_terminal
 
-#eval myMainProgram sleep_noop
+-- #eval myMainProgram sleep_noop render_noop
