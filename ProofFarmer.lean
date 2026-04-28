@@ -133,13 +133,20 @@ def drawBoard (board: List (List String)) (x:  Nat) (y: Nat) : String :=
           row
     ).map (String.intercalate " "))
 
+def moveEast (p:Nat × Nat) : Nat × Nat :=
+  (p.1 + 1 , p.2)
+
+
 def myMainProgram : IO Unit := do
-  let myPos := [0, 0]
+  let mut myPos: Nat × Nat := (0, 0)
+
+  myPos := moveEast (moveEast myPos)
+
   let row :List String:= (List.replicate 5 ".")
   let board: List (List String) :=
     (List.replicate 5 row)
 
-  let boardString:String := drawBoard board myPos[0] myPos[1]
+  let boardString:String := drawBoard board myPos.1 myPos.2
 
   IO.println boardString
 
