@@ -134,14 +134,12 @@ def drawBoard (board: List (List String)) (pos: Pos) : String :=
     ).map (String.intercalate " "))
 
 
-def wait_ticks (ticks: Nat) (w : World) : IO World := do
+def wait_ticks (ticks: Nat) (w : World) (sleep :( UInt32) -> BaseIO Unit) : IO World := do
   let ms := (ticks *1000 / base_ticks_per_second).toUInt32
-  IO.sleep ms
+  sleep ms
   pure {w with ticks := w.ticks + ticks }
 
-
-
-def myMainProgram : IO Unit := do
+def myMainProgram (sleep:UInt32 -> BaseIO Unit): IO Unit := do
   let worldSize := 1
 
   let mut world <- loadWorld
@@ -149,15 +147,15 @@ def myMainProgram : IO Unit := do
   -- world := moveEast (moveEast world)
   IO.println "harvesting"
   world := harvest world
-  world <- wait_ticks (1 * base_ticks_per_second) world
+  world <- wait_ticks (1 * base_ticks_per_second) world sleep
   world := harvest world
-  IO.sleep 1000
+  sleep 1000
   IO.println "sleeping"
   world := harvest world
-  IO.sleep 1000
+  sleep 1000
   IO.println "sleeping"
   world := harvest world
-  IO.sleep 1000
+  sleep 1000
   IO.println "sleeping"
   world := harvest world
   world := unlock_while (world)
@@ -237,8 +235,15 @@ def runMock : MockM a -> (a × List String)
 -- #eval runMock (appLogic (m := MockM))
 -- #check StateM
 
+
+
+def sleep_wait (ms : UInt32) : BaseIO Unit
+ := IO.sleep ms
+
+def sleep_noop (_ms : UInt32) : BaseIO Unit
+ := pure ()
+
 def main : IO Unit := do
-  myMainProgram
+  myMainProgram sleep_wait
 
-
-#eval main
+#eval myMainProgram sleep_noop
