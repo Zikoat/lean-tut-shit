@@ -1,1 +1,7 @@
-{"while_unlocked": false, "ticks": 400, "myPos": {"y": 0, "x": 3}, "hay": 0}
+{"unlocked_while": false,
+ "unlocked_speed_1": false,
+ "unlocked_grass_1": false,
+ "unlocked_expand_1": false,
+ "ticks": 400,
+ "myPos": {"y": 0, "x": 3},
+ "hay": 0}
