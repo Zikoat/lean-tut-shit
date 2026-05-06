@@ -41,7 +41,7 @@ decreasing_by
   (Nat.le_add_right (termSize hq) (termSize hp + 1))
 
 #eval show IO Unit from do
-  let w_0 : World := { ticks := 400, myPos := {x:=3}}
+  let w_0 : World := { ticks := 400, unlocked_expand_1 := true, myPos := {y:=2} }
   saveWorld w_0 "test_world.json"
   let w_1 <- loadWorld "test_world.json"
   unless w_0 == w_1 do
@@ -82,7 +82,9 @@ example : (move .north (move .north ({unlocked_expand_1:=true} : World))).myPos.
 example : (move .north (move .north (move .north ({unlocked_expand_1:=true} : World)))).myPos.y = 0 := by rfl
 example : (world_size ({unlocked_expand_1:=true} : World)).y = 3 := by rfl
 
-theorem x_less_than_world_x (w: World) :  w.myPos.x < (world_size w).x := by sorry
-theorem y_less_than_world_y (w: World) :  w.myPos.y < (world_size w).y := by sorry
-theorem x_more_than_0 (w: World) :  w.myPos.x >= 0 := by omega
-theorem y_more_than_0 (w: World) :  w.myPos.y >= 0 := by omega
+theorem x_less_than_world_x (w : World) : w.myPos.x < (world_size w).x :=
+  w.myPos_valid.1
+theorem y_less_than_world_y (w : World) : w.myPos.y < (world_size w).y :=
+  w.myPos_valid.2
+theorem x_more_than_0 (w : World) : w.myPos.x >= 0 := by omega
+theorem y_more_than_0 (w : World) : w.myPos.y >= 0 := by omega

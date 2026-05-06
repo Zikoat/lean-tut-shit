@@ -29,10 +29,8 @@ structure World where
 
 def base_ticks_per_second := 400
 
-def moveEast (w:World) : World :=
-  { w with
-    myPos := {w.myPos with x:= w.myPos.x+1}
-    ticks := w.ticks + 200}
+-- moveEast removed: use `move .east` (defined below). The +200 tick cost
+-- can be added at the call site if needed.
 
 def wait_ticks
     (ticks: Nat)
@@ -78,11 +76,21 @@ def unlock_grass_1(w:World):World:=
   else w
 
 
-def unlock_expand_1(w:World):World:=
-  if w.hay >= 30 && !w.unlocked_expand_1 then
-    {w with
+def unlock_expand_1 (w : World) : World :=
+  if h : w.hay >= 30 && !w.unlocked_expand_1 then
+    { w with
       unlocked_expand_1 := true
-      hay := w.hay - 30}
+      hay := w.hay - 30
+      myPos_valid := by
+        -- w.unlocked_expand_1 was false, so old size = (1,1).
+        -- That forces myPos = (0,0). Both coords are < new size (1, 3).
+        have hExpand : w.unlocked_expand_1 = false := by
+          simp at h; exact h.2
+        have hOld := w.myPos_valid
+        rw [hExpand] at hOld
+        simp [world_size_for] at hOld
+        simp [world_size_for, hOld]
+    }
   else w
 
 -- 1x1
@@ -96,6 +104,52 @@ def unlock_expand_1(w:World):World:=
 -- {Pumpkin: 512000},
 -- {Pumpkin: 4100000}
 
+
+-- JSON serialization: skip the proof field on save, validate on load.
+instance : Lean.ToJson World where
+  toJson w := Lean.Json.mkObj [
+    ("myPos", Lean.toJson w.myPos),
+    ("ticks", Lean.toJson w.ticks),
+    ("hay", Lean.toJson w.hay),
+    ("unlocked_while", Lean.toJson w.unlocked_while),
+    ("unlocked_speed_1", Lean.toJson w.unlocked_speed_1),
+    ("unlocked_grass_1", Lean.toJson w.unlocked_grass_1),
+    ("unlocked_expand_1", Lean.toJson w.unlocked_expand_1)
+  ]
+
+instance : Lean.FromJson World where
+  fromJson? j := do
+    let myPos ← j.getObjValAs? Pos "myPos"
+    let ticks ← j.getObjValAs? Nat "ticks"
+    let hay ← j.getObjValAs? Nat "hay"
+    let unlocked_while ← j.getObjValAs? Bool "unlocked_while"
+    let unlocked_speed_1 ← j.getObjValAs? Bool "unlocked_speed_1"
+    let unlocked_grass_1 ← j.getObjValAs? Bool "unlocked_grass_1"
+    let unlocked_expand_1 ← j.getObjValAs? Bool "unlocked_expand_1"
+    if h : myPos.x < (world_size_for unlocked_expand_1).x ∧
+           myPos.y < (world_size_for unlocked_expand_1).y then
+      pure { myPos, ticks, hay, unlocked_while, unlocked_speed_1,
+             unlocked_grass_1, unlocked_expand_1, myPos_valid := h }
+    else
+      .error "loaded position out of bounds"
+
+-- BEq, ignoring proof field (proof irrelevance).
+instance : BEq World where
+  beq a b :=
+    a.myPos == b.myPos
+    && a.ticks == b.ticks
+    && a.hay == b.hay
+    && a.unlocked_while == b.unlocked_while
+    && a.unlocked_speed_1 == b.unlocked_speed_1
+    && a.unlocked_grass_1 == b.unlocked_grass_1
+    && a.unlocked_expand_1 == b.unlocked_expand_1
+
+-- Repr for #eval.
+instance : Repr World where
+  reprPrec w _ :=
+    s!"\{ myPos := {repr w.myPos}, ticks := {w.ticks}, hay := {w.hay}, "
+    ++ s!"unlocked_while := {w.unlocked_while}, unlocked_speed_1 := {w.unlocked_speed_1}, "
+    ++ s!"unlocked_grass_1 := {w.unlocked_grass_1}, unlocked_expand_1 := {w.unlocked_expand_1} }"
 
 def default_world_file:System.FilePath := "world.json"
 
@@ -117,14 +171,39 @@ inductive Direction where
   | west
 
 
-def world_size (w:World): Pos :=
-  if w.unlocked_expand_1
-  then {x:=1,y:=3}
-  else {x:=1,y:=1}
+def world_size (w : World) : Pos := world_size_for w.unlocked_expand_1
 
-def move(dir:Direction)(w:World):World :=
+def move (dir : Direction) (w : World) : World :=
   match dir with
-  |.north =>{w with myPos:={w.myPos with y:=(w.myPos.y+(world_size w).y+1)% (world_size w).y}}
-  |.east => {w with myPos := {w.myPos with x:=(w.myPos.x+(world_size w).x+1)% (world_size w).x}}
-  |.south => {w with myPos := {w.myPos with y:=(w.myPos.y+(world_size w).y-1)% (world_size w).y}}
-  |.west => {w with myPos := {w.myPos with x:=(w.myPos.x+(world_size w).x-1)% (world_size w).x} }
+  | .north =>
+    { w with
+      myPos := { x := w.myPos.x, y := (w.myPos.y + (world_size w).y + 1) % (world_size w).y }
+      myPos_valid := by
+        refine ⟨w.myPos_valid.1, ?_⟩
+        show _ % (world_size_for w.unlocked_expand_1).y < _
+        exact Nat.mod_lt _ (world_size_for_y_pos _)
+    }
+  | .east =>
+    { w with
+      myPos := { x := (w.myPos.x + (world_size w).x + 1) % (world_size w).x, y := w.myPos.y }
+      myPos_valid := by
+        refine ⟨?_, w.myPos_valid.2⟩
+        show _ % (world_size_for w.unlocked_expand_1).x < _
+        exact Nat.mod_lt _ (world_size_for_x_pos _)
+    }
+  | .south =>
+    { w with
+      myPos := { x := w.myPos.x, y := (w.myPos.y + (world_size w).y - 1) % (world_size w).y }
+      myPos_valid := by
+        refine ⟨w.myPos_valid.1, ?_⟩
+        show _ % (world_size_for w.unlocked_expand_1).y < _
+        exact Nat.mod_lt _ (world_size_for_y_pos _)
+    }
+  | .west =>
+    { w with
+      myPos := { x := (w.myPos.x + (world_size w).x - 1) % (world_size w).x, y := w.myPos.y }
+      myPos_valid := by
+        refine ⟨?_, w.myPos_valid.2⟩
+        show _ % (world_size_for w.unlocked_expand_1).x < _
+        exact Nat.mod_lt _ (world_size_for_x_pos _)
+    }
