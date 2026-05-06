@@ -68,3 +68,21 @@ def sleepTest :IO Unit :=do
 
 -- def main : IO Unit := do
 --   sleepTest
+
+-- when we move outside of the world we should end at the other side
+-- a world with size 2x2, my location is 0,0, then we move left and we should end up on the other side.
+example : (({} : World)).myPos.x = 0 := by rfl
+example : (move .west ({} : World)).myPos.x = 0 := by rfl
+example : (move .east ({} : World)).myPos.x = 0 := by rfl
+example : (move .north ({} : World)).myPos.x = 0 := by rfl
+example : (move .south ({} : World)).myPos.x = 0 := by rfl
+example : (move .north ({unlocked_expand_1:=true} : World)).myPos.y = 1 := by rfl
+example : (move .south ({unlocked_expand_1:=true} : World)).myPos.y = 2 := by rfl
+example : (move .north (move .north ({unlocked_expand_1:=true} : World))).myPos.y = 2 := by rfl
+example : (move .north (move .north (move .north ({unlocked_expand_1:=true} : World)))).myPos.y = 0 := by rfl
+example : (world_size ({unlocked_expand_1:=true} : World)).y = 3 := by rfl
+
+theorem x_less_than_world_x (w: World) :  w.myPos.x < (world_size w).x := by sorry
+theorem y_less_than_world_y (w: World) :  w.myPos.y < (world_size w).y := by sorry
+theorem x_more_than_0 (w: World) :  w.myPos.x >= 0 := by omega
+theorem y_more_than_0 (w: World) :  w.myPos.y >= 0 := by omega

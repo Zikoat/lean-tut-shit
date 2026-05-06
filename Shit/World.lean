@@ -5,6 +5,15 @@ structure Pos where
   y : Nat := 0
 deriving Repr, Lean.ToJson, Lean.FromJson, BEq
 
+def world_size_for (unlocked_expand_1 : Bool) : Pos :=
+  if unlocked_expand_1 then {x:=1, y:=3} else {x:=1, y:=1}
+
+theorem world_size_for_x_pos (b : Bool) : (world_size_for b).x > 0 := by
+  cases b <;> simp [world_size_for]
+
+theorem world_size_for_y_pos (b : Bool) : (world_size_for b).y > 0 := by
+  cases b <;> simp [world_size_for]
+
 structure World where
   myPos: Pos := {}
   ticks: Nat := 0
@@ -12,8 +21,11 @@ structure World where
   unlocked_while: Bool := false
   unlocked_speed_1 : Bool := false
   unlocked_grass_1: Bool := false
-  unlocked_expand_1:Bool:=false
-deriving Repr, Lean.ToJson, Lean.FromJson, BEq
+  unlocked_expand_1: Bool := false
+  myPos_valid :
+    myPos.x < (world_size_for unlocked_expand_1).x ∧
+    myPos.y < (world_size_for unlocked_expand_1).y
+    := by simp [world_size_for]
 
 def base_ticks_per_second := 400
 
@@ -104,9 +116,15 @@ inductive Direction where
   | south
   | west
 
+
+def world_size (w:World): Pos :=
+  if w.unlocked_expand_1
+  then {x:=1,y:=3}
+  else {x:=1,y:=1}
+
 def move(dir:Direction)(w:World):World :=
   match dir with
-  |.north =>{w with myPos:={w.myPos with y:=w.myPos.y+1}}
-  |.east => {w with myPos := {w.myPos with x:=w.myPos.x+1}}
-  |.south => {w with myPos := {w.myPos with y:=w.myPos.y-1}}
-  |.west => {w with myPos := {w.myPos with x:=w.myPos.x-1} }
+  |.north =>{w with myPos:={w.myPos with y:=(w.myPos.y+(world_size w).y+1)% (world_size w).y}}
+  |.east => {w with myPos := {w.myPos with x:=(w.myPos.x+(world_size w).x+1)% (world_size w).x}}
+  |.south => {w with myPos := {w.myPos with y:=(w.myPos.y+(world_size w).y-1)% (world_size w).y}}
+  |.west => {w with myPos := {w.myPos with x:=(w.myPos.x+(world_size w).x-1)% (world_size w).x} }

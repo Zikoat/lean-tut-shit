@@ -146,11 +146,6 @@ def Bones_emoji:= "🦴"
 def Tick_emoji:="🕰️"
 
 
-def world_size (w:World): Pos :=
-  if w.unlocked_expand_1
-  then {x:=1,y:=3}
-  else {x:=1,y:=1}
-
 def render_terminal (w: World) : IO Unit := do
   let world_size_calc := world_size w
   let render_height := world_size_calc.y + 2
