@@ -12,3 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
+        with:
+          # Fetch Mathlib's prebuilt oleans instead of compiling them from source.
+          use-mathlib-cache: true
+          # Build the library (oleans / proof-check) only — NOT the `shit`/`farmer`
+          # executables. Linking an exe would native-compile all of Mathlib (`:c.o`),
+          # which the olean cache can't avoid. No runtime step exists yet, so this is
+          # build-only. Re-add an exe/run smoke test later if needed.
+          build-args: "Shit"
