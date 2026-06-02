@@ -20,3 +20,6 @@ jobs:
           # which the olean cache can't avoid. No runtime step exists yet, so this is
           # build-only. Re-add an exe/run smoke test later if needed.
           build-args: "Shit"
+          # Skip lint: the default lint driver targets `Main` (the exe root), which we
+          # don't build here, so `lake lint` errors with "unknown module prefix 'Main'".
+          lint: false
