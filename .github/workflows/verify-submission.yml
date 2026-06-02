@@ -1,0 +1,103 @@
+name: Verify Submission
+
+# Untrusted-AI proof pipeline. A SUBMISSION PR may add EXACTLY ONE file:
+#   Shit/Challenges/<name>/Solution.lean
+# comparator (pinned to the repo toolchain) then proves it really proves the
+# trusted Challenge, with no sorry and only permitted axioms. On success the PR
+# auto-merges. Normal (non-submission) PRs fast-pass this check untouched, so it
+# is safe to make `verify` a required status check on master.
+# See CONTEXT.md and docs/adr/0001-*.md.
+
+on:
+  pull_request:
+
+# Same-repo PRs get a write token (this is why forks are deferred — task #8).
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Classify PR (submission vs normal) and enforce single-file rule
+        id: guard
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          changed="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+          echo "Changed files:"; printf '%s\n' "$changed"
+          sols="$(printf '%s\n' "$changed" | grep -E '^Shit/Challenges/[^/]+/Solution\.lean$' || true)"
+          nsol="$(printf '%s\n' "$sols" | grep -c . || true)"
+          if [ "$nsol" -eq 0 ]; then
+            echo "Not a submission PR — fast-passing."
+            echo "submission=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # It IS a submission: the ONLY change allowed is that single Solution.lean.
+          ntotal="$(printf '%s\n' "$changed" | grep -c . || true)"
+          if [ "$ntotal" -ne 1 ]; then
+            echo "::error::A submission PR must change exactly one file (found $ntotal)."
+            exit 1
+          fi
+          echo "submission=true" >> "$GITHUB_OUTPUT"
+          echo "workspace=$(dirname "$sols")" >> "$GITHUB_OUTPUT"
+
+      - name: Install elan
+        if: steps.guard.outputs.submission == 'true'
+        run: |
+          curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch Mathlib cache (a Solution may import Mathlib/cslib)
+        if: steps.guard.outputs.submission == 'true'
+        run: lake exe cache get || true
+
+      - name: Set up Go (for landrun)
+        if: steps.guard.outputs.submission == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Build landrun sandbox
+        if: steps.guard.outputs.submission == 'true'
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/Zouuup/landrun.git "$RUNNER_TEMP/landrun"
+          cd "$RUNNER_TEMP/landrun"
+          go build -o landrun cmd/landrun/main.go
+          echo "$RUNNER_TEMP/landrun" >> "$GITHUB_PATH"
+
+      - name: Build comparator + lean4export (pinned v4.29.0-rc1)
+        if: steps.guard.outputs.submission == 'true'
+        run: |
+          set -euo pipefail
+          git clone https://github.com/leanprover/comparator.git "$RUNNER_TEMP/comparator"
+          cd "$RUNNER_TEMP/comparator"
+          git checkout v4.29.0-rc1
+          lake build
+          lake build lean4export
+          echo "$RUNNER_TEMP/comparator/.lake/build/bin" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/comparator/.lake/packages/lean4export/.lake/build/bin" >> "$GITHUB_PATH"
+
+      # We deliberately never run `lake build` on this repo before comparator, so the
+      # untrusted Solution module is only ever compiled inside comparator's landrun
+      # sandbox (comparator assumes the Solution is not pre-compiled).
+      - name: Verify the Submission
+        if: steps.guard.outputs.submission == 'true'
+        run: lake env comparator "${{ steps.guard.outputs.workspace }}/config.json"
+
+      - name: Auto-merge on success
+        if: success() && steps.guard.outputs.submission == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash --delete-branch

@@ -1,0 +1,7 @@
+{
+  "challenge_module": "Shit.Challenges.Contrapositive.Challenge",
+  "solution_module": "Shit.Challenges.Contrapositive.Solution",
+  "theorem_names": ["contrapositive"],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": false
+}

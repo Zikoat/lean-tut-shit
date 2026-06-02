@@ -88,3 +88,7 @@ theorem y_less_than_world_y (w : World) : w.myPos.y < (world_size w).y :=
   w.myPos_valid.2
 theorem x_more_than_0 (w : World) : w.myPos.x >= 0 := by omega
 theorem y_more_than_0 (w : World) : w.myPos.y >= 0 := by omega
+
+/-- Proposition for the `contrapositive` Challenge: the statement type only.
+    The proof is an open Challenge (see `Shit/Challenges/Contrapositive/`). -/
+def Contrapositive (p q : Prop) : Prop := (p → q) → (¬q → ¬p)
