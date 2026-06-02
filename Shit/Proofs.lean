@@ -40,12 +40,9 @@ decreasing_by
   simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
   (Nat.le_add_right (termSize hq) (termSize hp + 1))
 
-#eval show IO Unit from do
-  let w_0 : World := { ticks := 400, unlocked_expand_1 := true, myPos := {y:=2} }
-  saveWorld w_0 "test_world.json"
-  let w_1 <- loadWorld "test_world.json"
-  unless w_0 == w_1 do
-    throw (IO.userError s!"roundtrip mismatch:\n  before: {repr w_0}\n  after:{repr w_1}")
+-- The `World` JSON roundtrip `#eval` lives in `Shit.WorldRoundtrip` (not here):
+-- it writes a file at elaboration time, and the comparator compiles this module
+-- (via `Challenge.lean`) inside a landrun FS sandbox that denies such writes.
 
 partial def exec : Prog -> IO Unit
 | .skip => pure ()
