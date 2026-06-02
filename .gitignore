@@ -2,3 +2,6 @@
 .lake/
 build/
 world.json
+
+# Claude Code harness artifacts
+.claude/scheduled_tasks.lock

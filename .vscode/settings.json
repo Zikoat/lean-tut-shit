@@ -1,0 +1,6 @@
+{
+    "github-actions.workflows.pinned.workflows": [
+        ".github/workflows/lean_action_ci.yml",
+        ".github/workflows/verify-submission.yml"
+    ]
+}
