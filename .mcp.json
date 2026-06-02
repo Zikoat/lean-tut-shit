@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "lean-lsp": {
+      "command": "/home/zikoat/.local/bin/uvx",
+      "args": ["lean-lsp-mcp"],
+      "env": {
+        "LEAN_PROJECT_PATH": "/home/zikoat/dev/lean-tut-shit"
+      }
+    }
+  }
+}
