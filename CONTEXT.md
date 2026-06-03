@@ -59,7 +59,10 @@ _Avoid_: problem, task
 Where a Challenge stands, by colour: **Open** ("yellow") — still `sorry`; **Proven**
 ("green") — the accepted `Decidable P` instance is `isTrue` (`P` holds); **Disproven**
 ("red") — it is `isFalse` (`¬P` holds). A Disproven Challenge usually signals the
-underlying code or theorems need a follow-up change, whereas Proven needs none.
+underlying code or theorems need a follow-up change, whereas Proven needs none. A
+Challenge reverts to Open when its accepted Solution is deleted — because a code change
+invalidated the proof, or a false proof was found and the pipeline hardened — after which
+the agent re-solves.
 _Avoid_: status, verdict, colour.
 
 **Solution**:
