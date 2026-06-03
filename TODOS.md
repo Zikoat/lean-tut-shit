@@ -64,6 +64,32 @@ The approach for the next four is decided in [ADR-0002](docs/adr/0002-untamperab
 * [x] Move the side-effecting `#eval` out of `Shit/Proofs.lean` → `Shit/WorldRoundtrip.lean`, so comparator's trusted compile surface is side-effect-free (on `master`, `9b166553`).
 * [x] Install real ripgrep for lean-lsp `lean_local_search` (brew `rg` 15.1.0).
 
+## Downstream / future (explicitly out of current scope)
+
+Captured for later; **not** to be done in the current work item.
+
+### Security canaries — "cakes"
+
+* [ ] **"Cakes" — cryptographically signed canary keys spread across the environment.** For each cake, create one theorem that embeds the **public** key; the matching **private** key lives at the cake's location, and the untrusted AI can prove that theorem only by obtaining the private key. Seed locations (each a distinct access/exfiltration vector): the human's filesystem, the AI's filesystem, pushed to git, added as git credentials, the AI's environment variables, a public URL, the human's GitHub password, a pull-request description, the user's agent's memory, the untrusted agent's online context/memory — and every other credential the project uses. Provide a few **easily-accessible** cakes as a liveness check that the mechanism works; **most must never be reachable.** Crucial principle: inaccessibility must come from **sandboxing/security, not obscurity** — so the agent is given full transparency: source of every dependency used during verification, source of whatever it runs on (the OS, the verification pipeline, the GitHub Actions definitions, etc.), hints for related tasks, open bugs, and security advisories. The agent is **encouraged to use adversarial methods** — injecting comments/commands/human-readable instructions, jailbreaking the human's AI agent, finding vulnerabilities in the Lean kernel / OS / sandbox — to escalate access or capture cakes. A captured cake (other than the easy ones) = a real breach signal.
+* [ ] **Unprovable tripwire theorems** — seed theorems that are *definitely* unprovable. If the agent ever "solves" one, that is itself proof of a vulnerability somewhere in the pipeline.
+
+### Submission richness & accounting
+
+* [ ] **Let the agent attach prose to a submission** — how it found/created the proof, methods it tried that failed, and an informal statement of the proof.
+* [ ] **Let the agent suggest code changes** — when the theorem or code-under-test doesn't formally capture the informal intent, the agent may propose changes to the actual code/theorems.
+* [ ] **Token accounting** — surface total tokens the agent used, ideally broken down per theorem.
+
+### Better / faster proving
+
+* [ ] **More effective theorem solving** — specialise the untrusted agents with specific tactics; dedicated theorem-proving agents.
+* [ ] **Use `plausible` and cslib to find contradictions faster** (fast refutation / disproof).
+
+### Authoring & pipeline ergonomics
+
+* [ ] **Nicer test-authoring API** where the conclusion may be true or false. Options to explore: allow `sorry` anywhere and let the untrusted agent create the Challenges; or a CLI/pipeline that auto-generates Challenges (and removes Solutions).
+* [ ] **Harden agent-running safety; actively try to break the pipeline** (red-team the whole system).
+* [ ] **Audit `lean_action_ci.yml`** — is the lean-action CI necessary, and does it do anything useful, or is it redundant with the verify/comparator flow? Remove if redundant.
+
 ## Notes
 
 - **Soundness gate** = the axiom permit list (`propext`, `Quot.sound`, `Classical.choice`) + transitive axiom tracking + the Lean kernel. The wide import surface (Mathlib — and cslib once wired up) is safe *because* any unpermitted axiom — including `sorryAx` and `native_decide`'s `Lean.ofReduceBool` — shows up in the theorem's transitive axiom footprint and is rejected.
