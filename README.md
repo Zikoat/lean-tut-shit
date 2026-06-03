@@ -1,8 +1,63 @@
-# shit
+# shit — ProofFarmer
 
-This project is a work in progress to translate the game *The Farmer Was Replaced* to Lean.
+A work-in-progress Lean reimplementation of the programming game *The Farmer Was
+Replaced* ([mechanics wiki](https://thefarmerwasreplaced.wiki.gg/)). The game has an
+**unlock tree**; buying unlocks adds features and challenges, and reaching the **last
+unlock** (`leaderboard`) is the end goal. The full unlock set and costs are a fixed spec
+([Unlocks Data](https://thefarmerwasreplaced.wiki.gg/wiki/Unlocks_Data)); what each
+unlock changes in the code varies.
 
-The end-game state is to have a theorem of the form: "provide a function which unlocks the last unlock and then terminates in finite time, and prove that it does that".
+The end-game theorem has the form: *"provide a Program that unlocks the last unlock and
+then terminates in finite time, and prove that it does."* We expect to build a few
+sub-proofs for intermediate unlocks so the whole thing can be proved in pieces rather
+than all at once.
+
+**Stretch goal:** search the Program space for one that reaches the last unlock in the
+*fewest ticks* — a hard optimization problem, well beyond the base end-game theorem.
+
+### Why this project exists
+
+This is my first Lean project, so **a lot of scratch is expected**, and we will most
+likely implement only the first few unlocks before halting. Fully proving the program is
+*not* the point — the API and design are still being figured out as we go.
+
+The real goal is to learn **how formal verification scales with software size and
+complexity**, and how a **"sorry-based programming"** paradigm — stubbing theorems with
+`sorry` and discharging them incrementally as the code stabilizes — can be used most
+effectively.
+
+The trusted codebase is the **World**, the **Program** that executes actions in it, and
+the authoring of **Challenges** (proof obligations about world invariants and other
+properties). The untrusted part is the creation of **Solutions** (the proofs) — see
+[CONTEXT.md](./CONTEXT.md) for the verification pipeline and [docs/adr/](./docs/adr/) for
+decisions.
+
+Implementation notes:
+- Actions take real time (e.g. ~200 ms per `move`), so the Program will exist in two
+  variants: one threaded with `IO` (can wait, runs for real) and a pure one (no `IO`,
+  easier to reason about and prove). Accumulated `ticks` are the clock for the `IO`
+  ("displayed"/game) version — it waits out the ticks and renders; in the pure version
+  `ticks` is just a counter.
+- A VS Code widget to display the current board state is planned.
+
+### Research questions
+
+The questions this project is meant to answer:
+
+- If a theorem's proof exists and the underlying code changes, how large/devastating are
+  the resulting changes to the proof?
+- How often does a code change invalidate a proof?
+- How fast is an agent at proving a theorem?
+- Can an agent reuse past proofs to help prove new theorems?
+- Can we make the proving process more efficient?
+- Can we use `plausible` to quickly refute hard or false theorems?
+- Can we use `Decidable` to get both positive and negative proofs?
+- How much work is it to harden the pull-request flow for auto-merge?
+- How do we set up a fully automatic theorem-proving software agent?
+- How accurate is such an agent at proving theorems?
+- If proving becomes fully automatic, do we lose the ability to extract necessary,
+  correct, desired, or creative changes to the world/program/theorems — because we only
+  ever end up with a true/false verdict?
 
 ## Development
 
@@ -48,15 +103,21 @@ cp test_world.json world.json
 ### Project layout
 
 ```
-Main.lean          # `shit` exe — Lean tutorial scratchpad
-ProofFarmer.lean   # `farmer` exe — the farming simulation entry point
-Shit.lean          # library root
-Shit/World.lean    # World state, Pos, bounds invariant (myPos_valid), move/unlock, JSON load/save
-Shit/Proofs.lean   # proofs about the world (bounds, move wrap-around, round-trip)
-Shit/Basic.lean    # `hello` helper
-test_world.json    # tracked test fixture (a valid starting world)
-world.json         # git-ignored live save state
-TODOS.md           # task list
+Main.lean                       # `shit` exe — Lean tutorial scratchpad
+ProofFarmer.lean                # `farmer` exe entry point (currently learning scratch)
+Shit.lean                       # library root
+Shit/World.lean                 # World state, Pos, bounds invariant (myPos_valid), move/unlock, JSON load/save
+Shit/Proofs.lean                # proofs about the world (bounds, move wrap-around) + the Contrapositive Proposition
+Shit/WorldRoundtrip.lean        # `#eval` round-trip check for World JSON (kept out of Proofs.lean — see comparator note below)
+Shit/Basic.lean                 # `hello` helper
+Shit/Scratch.lean               # Lean-learning scratch
+Shit/Absurdity_test.lean        # Lean-learning scratch
+Shit/Challenges/<name>/         # one Workspace per Challenge (Challenge.lean + config.json + the untrusted Solution.lean)
+.github/workflows/              # verify-submission.yml (untrusted-proof gate) + lean_action_ci.yml (build)
+CONTEXT.md                      # glossary;  docs/adr/ # decisions
+test_world.json                 # tracked test fixture (a valid starting world); regenerated by Shit/WorldRoundtrip.lean on build
+world.json                      # git-ignored live save state
+TODOS.md                        # task list (game/proofs + pipeline)
 ```
 
 ### Editing in VS Code
