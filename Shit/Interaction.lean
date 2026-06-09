@@ -314,6 +314,15 @@ example :
 example :
     (loadTest [some (.error "bad")] (key 'x' ++ key 'd')).2.archived = 1 := by rfl
 
+-- No save file -> start fresh from the default World, with no prompt and no archive.
+example : (loadTest [none] []).1.hay = 0 := by rfl
+example : (loadTest [none] []).2.log = [] := by rfl
+example : (loadTest [none] []).2.archived = 0 := by rfl
+
+-- A valid save loads directly, with no prompt and no archive.
+example : (loadTest [some (.ok { hay := 42 })] []).1.hay = 42 := by rfl
+example : (loadTest [some (.ok { hay := 42 })] []).2.log = [] := by rfl
+
 -- The migrated farmer bug, at the decidable `Json -> World` boundary. An expanded
 -- board (`world_size_for true = {x:=1, y:=3}`) requires `y < 3`, so a save with
 -- `myPos.y = 3` is rejected; the same board with `y = 2` loads. Both reduce under rfl.
