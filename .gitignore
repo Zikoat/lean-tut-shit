@@ -2,6 +2,8 @@
 .lake/
 build/
 world.json
+test_world.json
+corrupted/
 
 # Claude Code harness artifacts
 .claude/scheduled_tasks.lock

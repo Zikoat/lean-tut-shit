@@ -1,5 +1,6 @@
 import Init.Control.State
 import Shit.World
+import Shit.Interaction
 
 def boolArray : Array Bool :=
   #[false, false, false]
@@ -170,7 +171,9 @@ def render_noop (_w: World) : IO Unit := do
 
 def myMainProgram (sleep:UInt32 -> BaseIO Unit)  (render : World -> IO Unit): IO World := do
   IO.print "\n\n\n\n\n\n"
-  let mut w <- loadWorld
+  -- Load via the recovery flow instead of the throwing `loadWorld`: a corrupt save
+  -- (e.g. a stale out-of-bounds `world.json`) prompts the user to retry or delete.
+  let mut w <- loadWithRecovery realEnv 1000000
 
 
   -- world := moveEast (moveEast world)
