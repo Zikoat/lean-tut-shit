@@ -8,6 +8,7 @@ decisions. Items are grouped by status, not priority.
 ## Game & proofs
 
 * [ ] **Full loop migration onto `WorldEnv`** — `Shit/Interaction.lean` (PR #5) landed the `WorldEnv` effect record + pure `Action`/`run` Program + layered parse + `loadWithRecovery`, but the gameplay `while True` loop in `ProofFarmer.lean` still uses ad-hoc `render`/`sleep` and a hardcoded harvest/move sequence. Generalize: add a `render` field to `WorldEnv`, extract a pure `renderToString` from `ProofFarmer.render_terminal`/`drawBoard`, and drive the loop via `Action`/`run`. Touches working game code — keep it surgical and TDD it; the `while True` IO driver stays the untested edge, only the structurally-terminating pieces are unit-testable. (Relates to the `sleep`/`render`-optional + `wait_ticks` equivalence item below.)
+* [ ] **Challenge: save/load symmetry** — prove `saveWorld` and load are symmetric (round-trip): saving a World then loading it back yields the same World, assuming the file wasn't tampered with. `Shit/WorldRoundtrip.lean` checks one fixture via `#eval`; this would generalize it to a proved property over the layered `World → string → parseWorld` path.
 * [ ] `move` should wait 200 ticks _(today `move` carries no tick cost by design — see the comment in `World.lean`; cost added at the call site)_
 * [ ] `move` should render
 * [x] `move` should wrap around _(modulo arithmetic in `World.lean` `move`; wraparound examples in `Shit/Proofs.lean`)_
