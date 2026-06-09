@@ -3,3 +3,4 @@
 import Shit.Basic
 import Shit.Proofs
 import Shit.WorldRoundtrip
+import Shit.Interaction
